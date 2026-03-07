@@ -6,7 +6,7 @@
     android:background="@color/background_app"
     android:orientation="vertical">
 
-    <RecyclerView
+    <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/mod_manager_list"
         android:layout_width="match_parent"
         android:layout_height="0dp"
