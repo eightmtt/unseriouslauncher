@@ -26,7 +26,6 @@
                 android:layout_height="@dimen/_50sdp"
                 android:layout_marginTop="@dimen/padding_heavy"
                 android:paddingHorizontal="@dimen/profile_editor_image_padding"
-
                 android:paddingVertical="@dimen/profile_editor_image_padding"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
@@ -56,13 +55,11 @@
                 android:layout_marginTop="@dimen/padding_large"
                 android:background="@drawable/background_line"
                 android:textSize="@dimen/_13ssp"
-
                 android:ems="10"
                 android:hint="@string/unnamed"
                 android:inputType="textPersonName"
                 android:paddingHorizontal="@dimen/padding_heavy"
                 app:layout_constraintTop_toBottomOf="@id/vprof_editor_instance_icon" />
-
 
             <TextView
                 android:id="@+id/textView4"
@@ -82,7 +79,6 @@
                 android:hint="@string/version_select_hint"
                 android:paddingHorizontal="@dimen/padding_heavy"
                 android:textSize="@dimen/_13ssp"
-
                 app:layout_constraintEnd_toStartOf="@+id/vprof_editor_version_button"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/vprof_editor_instance_name" />
@@ -93,14 +89,10 @@
                 android:layout_height="0dp"
                 android:paddingHorizontal="@dimen/padding_large"
                 android:paddingVertical="0px"
-
-
                 android:text="@string/global_select"
-
                 app:layout_constraintBottom_toBottomOf="@+id/vprof_editor_version_spinner"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="@+id/vprof_editor_version_spinner" />
-
 
             <TextView
                 android:id="@+id/textView7"
@@ -116,12 +108,10 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="32dp"
                 android:layout_marginEnd="@dimen/padding_medium"
-
                 android:background="@drawable/background_line"
                 android:hint="@string/use_global_default"
                 android:paddingHorizontal="@dimen/padding_heavy"
                 android:textSize="@dimen/_13ssp"
-
                 app:layout_constraintEnd_toStartOf="@id/vprof_editor_ctrl_button"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/vprof_editor_version_spinner" />
@@ -132,8 +122,6 @@
                 android:layout_height="0dp"
                 android:paddingHorizontal="@dimen/padding_large"
                 android:text="@string/global_select"
-
-
                 app:layout_constraintBottom_toBottomOf="@id/vprof_editor_ctrl_spinner"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="@id/vprof_editor_ctrl_spinner" />
@@ -158,7 +146,6 @@
                 app:layout_constraintTop_toBottomOf="@+id/vprof_editor_ctrl_spinner"
                 tools:layout_editor_absoluteX="22dp"/>
 
-
             <TextView
                 android:id="@+id/textView6"
                 android:layout_width="wrap_content"
@@ -178,7 +165,6 @@
                 android:inputType="text"
                 android:paddingHorizontal="@dimen/padding_heavy"
                 android:textSize="@dimen/_13ssp"
-
                 app:layout_constraintTop_toBottomOf="@+id/vprof_editor_data_checkbox_container" />
 
             <TextView
@@ -205,11 +191,9 @@
                 android:paddingHorizontal="@dimen/_8sdp"
                 android:rotation="180"
                 android:src="@drawable/spinner_arrow"
-
                 app:layout_constraintBottom_toBottomOf="@id/vprof_editor_spinner_runtime"
                 app:layout_constraintEnd_toEndOf="@id/vprof_editor_spinner_runtime"
                 app:layout_constraintTop_toTopOf="@id/vprof_editor_spinner_runtime" />
-
 
             <TextView
                 android:id="@+id/textView3"
@@ -227,8 +211,6 @@
                 android:background="@drawable/background_line"
                 android:dropDownWidth="match_parent"
                 android:paddingVertical="0px"
-
-
                 app:layout_constraintTop_toBottomOf="@+id/vprof_editor_spinner_runtime"
                 tools:paddingVertical="@dimen/_12sdp" />
 
@@ -238,21 +220,29 @@
                 android:paddingHorizontal="@dimen/_8sdp"
                 android:rotation="180"
                 android:src="@drawable/spinner_arrow"
-
                 app:layout_constraintBottom_toBottomOf="@id/vprof_editor_instance_renderer"
                 app:layout_constraintEnd_toEndOf="@id/vprof_editor_instance_renderer"
                 app:layout_constraintTop_toTopOf="@id/vprof_editor_instance_renderer" />
 
-
         </androidx.constraintlayout.widget.ConstraintLayout>
     </ScrollView>
+
+    <!-- Кнопка Мод-менеджера -->
+    <com.kdt.mcgui.MineButton
+        android:id="@+id/vprof_editor_mod_manager_button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="@dimen/fragment_padding_medium"
+        android:layout_marginBottom="8dp"
+        android:text="@string/mod_manager_title" />
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:paddingHorizontal="@dimen/fragment_padding_medium"
-        android:layout_marginVertical="13dp"
-        >
+        android:layout_marginVertical="13dp">
+
         <com.kdt.mcgui.MineButton
             android:id="@+id/vprof_editor_save_button"
             android:layout_width="0dp"
