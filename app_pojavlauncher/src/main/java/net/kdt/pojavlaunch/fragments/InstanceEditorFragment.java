@@ -46,6 +46,7 @@ public class InstanceEditorFragment extends Fragment implements CropperUtils.Cro
     private Instance mInstance;
     private String mSelectedControlLayout;
     private Button mSaveButton, mDeleteButton, mControlSelectButton, mVersionSelectButton;
+    private Button mModManagerButton;
     private Spinner mDefaultRuntime, mDefaultRenderer;
     private EditText mDefaultName, mDefaultJvmArgument;
     private TextView mDefaultVersion, mDefaultControl;
@@ -63,7 +64,6 @@ public class InstanceEditorFragment extends Fragment implements CropperUtils.Cro
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        // Paths, which can be changed
         String value = (String) ExtraCore.consumeValue(ExtraConstants.FILE_SELECTOR);
         if(value != null){
             mSelectedControlLayout = value;
@@ -82,7 +82,6 @@ public class InstanceEditorFragment extends Fragment implements CropperUtils.Cro
         renderList.add(view.getContext().getString(R.string.global_default));
         mDefaultRenderer.setAdapter(new ArrayAdapter<>(view.getContext(), R.layout.item_simple_list_1, renderList));
 
-        // Set up behaviors
         mSaveButton.setOnClickListener(v -> {
             InstanceIconProvider.dropIcon(mInstance);
             save();
@@ -99,18 +98,23 @@ public class InstanceEditorFragment extends Fragment implements CropperUtils.Cro
             }
         });
 
+        mModManagerButton.setOnClickListener(v -> {
+            Bundle bundle = new Bundle();
+            if (mInstance != null) {
+                bundle.putString(ModManagerFragment.TAG, mInstance.versionId);
+            }
+            Tools.swapFragment(requireActivity(), ModManagerFragment.class, ModManagerFragment.TAG, bundle);
+        });
+
         View.OnClickListener controlSelectListener = getControlSelectListener();
         mControlSelectButton.setOnClickListener(controlSelectListener);
         mDefaultControl.setOnClickListener(controlSelectListener);
 
-        // Setup the expendable list behavior
         View.OnClickListener versionSelectListener = getVersionSelectListener();
         mVersionSelectButton.setOnClickListener(versionSelectListener);
         mDefaultVersion.setOnClickListener(versionSelectListener);
 
-        // Set up the icon change click listener
         mInstanceIcon.setOnClickListener(v -> {
-            // Fill recommended size on click to ge the most up to date data
             mRecommendedIconSize = Math.max(v.getWidth(), v.getHeight());
             CropperUtils.startCropper(mCropperLauncher);
         });
@@ -137,7 +141,6 @@ public class InstanceEditorFragment extends Fragment implements CropperUtils.Cro
             Bundle bundle = new Bundle(3);
             bundle.putBoolean(FileSelectorFragment.BUNDLE_SELECT_FOLDER, false);
             bundle.putString(FileSelectorFragment.BUNDLE_ROOT_PATH, Tools.CTRLMAP_PATH);
-
             Tools.swapFragment(requireActivity(),
                     FileSelectorFragment.class, FileSelectorFragment.TAG, bundle);
         };
@@ -158,7 +161,6 @@ public class InstanceEditorFragment extends Fragment implements CropperUtils.Cro
                 InstanceIconProvider.fetchIcon(getResources(), instance)
         );
 
-        // Runtime spinner
         List<Runtime> runtimes = MultiRTUtils.getRuntimes();
         int jvmIndex = -1;
         if(instance.selectedRuntime != null) {
@@ -168,7 +170,6 @@ public class InstanceEditorFragment extends Fragment implements CropperUtils.Cro
         if(jvmIndex == -1) jvmIndex = runtimes.size() - 1;
         mDefaultRuntime.setSelection(jvmIndex);
 
-        // Renderer spinner
         int rendererIndex = mRenderNames.indexOf(instance.getLaunchRenderer());
         if(rendererIndex == -1) {
             rendererIndex = mDefaultRenderer.getAdapter().getCount() - 1;
@@ -187,20 +188,18 @@ public class InstanceEditorFragment extends Fragment implements CropperUtils.Cro
         mDefaultRuntime = view.findViewById(R.id.vprof_editor_spinner_runtime);
         mDefaultRenderer = view.findViewById(R.id.vprof_editor_instance_renderer);
         mDefaultVersion = view.findViewById(R.id.vprof_editor_version_spinner);
-
         mDefaultName = view.findViewById(R.id.vprof_editor_instance_name);
         mDefaultJvmArgument = view.findViewById(R.id.vprof_editor_jre_args);
-
         mSaveButton = view.findViewById(R.id.vprof_editor_save_button);
         mDeleteButton = view.findViewById(R.id.vprof_editor_delete_button);
         mControlSelectButton = view.findViewById(R.id.vprof_editor_ctrl_button);
         mVersionSelectButton = view.findViewById(R.id.vprof_editor_version_button);
         mInstanceIcon = view.findViewById(R.id.vprof_editor_instance_icon);
         mSharedDataCheckbox = view.findViewById(R.id.vprof_editor_data_checkbox_container);
+        mModManagerButton = view.findViewById(R.id.vprof_editor_mod_manager_button);
     }
 
     private void save(){
-        //First, check for potential issues in the inputs
         mInstance.versionId = mDefaultVersion.getText().toString();
         mInstance.controlLayout = mDefaultControl.getText().toString();
         mInstance.name = mDefaultName.getText().toString();
@@ -248,4 +247,4 @@ public class InstanceEditorFragment extends Fragment implements CropperUtils.Cro
     public void onFailed(Exception exception) {
         Tools.showErrorRemote(exception);
     }
-}
+ }
