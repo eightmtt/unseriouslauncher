@@ -18,7 +18,6 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import git.artdeell.mojo.R;
-import net.kdt.pojavlaunch.Tools;
 import net.kdt.pojavlaunch.instances.Instance;
 import net.kdt.pojavlaunch.instances.Instances;
 import net.kdt.pojavlaunch.modmanager.CurseForgeApi;
@@ -64,15 +63,18 @@ public class ModMarketFragment extends Fragment {
         mProgress = view.findViewById(R.id.market_progress);
         mStatusText = view.findViewById(R.id.market_status_text);
 
-        // Получаем версию из аргументов
         if (getArguments() != null) {
             mVersionFilter = getArguments().getString(ARG_VERSION, "");
         }
         if (mVersionFilter == null) mVersionFilter = "";
 
+        // Сразу извлекаем чистую версию MC для отображения
+        String displayVersion = CurseForgeApi.extractMcVersion(mVersionFilter);
+        if (!displayVersion.isEmpty()) mVersionFilter = displayVersion;
+
         updateFilterButton();
 
-        mAdapter = new MarketModAdapter(new ArrayList<>(), mod -> showInstallDialog(mod));
+        mAdapter = new MarketModAdapter(new ArrayList<>(), this::showVersionDialog);
         mModList.setLayoutManager(new LinearLayoutManager(getContext()));
         mModList.setAdapter(mAdapter);
 
@@ -84,7 +86,6 @@ public class ModMarketFragment extends Fragment {
             search(mSearchEdit.getText().toString().trim());
         });
 
-        // Начальный поиск
         search("");
     }
 
@@ -94,14 +95,11 @@ public class ModMarketFragment extends Fragment {
             return;
         }
         mFilterToggle.setVisibility(View.VISIBLE);
-        if (mFilterEnabled) {
-            mFilterToggle.setText("Фильтр: " + mVersionFilter + " ✓");
-        } else {
-            mFilterToggle.setText("Фильтр выключен");
-        }
+        mFilterToggle.setText(mFilterEnabled ? "Фильтр: " + mVersionFilter + " ✓" : "Фильтр выключен");
     }
 
     private void search(String query) {
+        mProgress.setIndeterminate(true);
         mProgress.setVisibility(View.VISIBLE);
         mStatusText.setVisibility(View.GONE);
         mModList.setVisibility(View.GONE);
@@ -131,16 +129,82 @@ public class ModMarketFragment extends Fragment {
         });
     }
 
-    private void showInstallDialog(JSONObject mod) {
+    private void showVersionDialog(JSONObject mod) {
         try {
-            String name = mod.getString("name");
-            String summary = mod.optString("summary", "");
+            String name = mod.optString("name", "?");
             int modId = mod.getInt("id");
+            String mcVersion = (mFilterEnabled && !mVersionFilter.isEmpty()) ? mVersionFilter : null;
+
+            mProgress.setIndeterminate(true);
+            mProgress.setVisibility(View.VISIBLE);
+
+            mExecutor.execute(() -> {
+                try {
+                    JSONArray files = CurseForgeApi.getModFiles(modId, mcVersion);
+                    mHandler.post(() -> {
+                        mProgress.setVisibility(View.GONE);
+                        if (files == null || files.length() == 0) {
+                            Toast.makeText(getContext(), "Нет доступных версий", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+
+                        String[] versionNames = new String[files.length()];
+                        for (int i = 0; i < files.length(); i++) {
+                            try {
+                                JSONObject file = files.getJSONObject(i);
+                                String fileName = file.optString("fileName", "?");
+                                JSONArray gameVersions = file.optJSONArray("gameVersions");
+                                String gv = "";
+                                if (gameVersions != null && gameVersions.length() > 0) {
+                                    gv = " [" + gameVersions.getString(0) + "]";
+                                }
+                                versionNames[i] = fileName + gv;
+                            } catch (Exception e) {
+                                versionNames[i] = "Версия " + i;
+                            }
+                        }
+
+                        new AlertDialog.Builder(requireContext())
+                            .setTitle("Выберите версию: " + name)
+                            .setItems(versionNames, (d, which) -> {
+                                try {
+                                    showInstallConfirm(name, files.getJSONObject(which), mcVersion);
+                                } catch (Exception e) {
+                                    Toast.makeText(getContext(), "Ошибка", Toast.LENGTH_SHORT).show();
+                                }
+                            })
+                            .setNegativeButton("Отмена", null)
+                            .show();
+                    });
+                } catch (Exception e) {
+                    mHandler.post(() -> {
+                        mProgress.setVisibility(View.GONE);
+                        Toast.makeText(getContext(), "Ошибка загрузки версий", Toast.LENGTH_SHORT).show();
+                    });
+                }
+            });
+        } catch (Exception e) {
+            Toast.makeText(getContext(), "Ошибка", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void showInstallConfirm(String modName, JSONObject file, String mcVersion) {
+        try {
+            JSONArray deps = file.optJSONArray("dependencies");
+            int requiredDeps = 0;
+            if (deps != null) {
+                for (int i = 0; i < deps.length(); i++) {
+                    if (deps.getJSONObject(i).optInt("relationType", 0) == 3) requiredDeps++;
+                }
+            }
+
+            String msg = "Файл: " + file.optString("fileName", "?");
+            if (requiredDeps > 0) msg += "\n\nЗависимостей: " + requiredDeps + " (установятся автоматически)";
 
             new AlertDialog.Builder(requireContext())
-                .setTitle(name)
-                .setMessage(summary + "\n\nЗагрузить зависимости автоматически?")
-                .setPositiveButton("Установить", (d, w) -> installMod(modId, name))
+                .setTitle("Установить " + modName + "?")
+                .setMessage(msg)
+                .setPositiveButton("Установить", (d, w) -> installMod(modName, file, mcVersion))
                 .setNegativeButton("Отмена", null)
                 .show();
         } catch (Exception e) {
@@ -148,8 +212,11 @@ public class ModMarketFragment extends Fragment {
         }
     }
 
-    private void installMod(int modId, String modName) {
+    private void installMod(String modName, JSONObject file, String mcVersion) {
+        mProgress.setIndeterminate(false);
+        mProgress.setProgress(0);
         mProgress.setVisibility(View.VISIBLE);
+
         mExecutor.execute(() -> {
             try {
                 Instance instance = Instances.loadSelectedInstance();
@@ -160,29 +227,16 @@ public class ModMarketFragment extends Fragment {
                 File modsDir = new File(instance.getGameDirectory(), "mods");
                 if (!modsDir.exists()) modsDir.mkdirs();
 
-                // Получаем версии мода
-                String mcVersion = (mFilterEnabled && !mVersionFilter.isEmpty()) ? mVersionFilter : null;
-                JSONArray files = CurseForgeApi.getModFiles(modId, mcVersion);
+                String downloadUrl = file.getString("downloadUrl");
+                String fileName = file.getString("fileName");
 
-                if (files == null || files.length() == 0) {
-                    mHandler.post(() -> {
-                        mProgress.setVisibility(View.GONE);
-                        Toast.makeText(getContext(), "Нет файлов для этой версии", Toast.LENGTH_SHORT).show();
-                    });
-                    return;
-                }
-
-                JSONObject latestFile = files.getJSONObject(0);
-                String downloadUrl = latestFile.getString("downloadUrl");
-                String fileName = latestFile.getString("fileName");
-
-                // Скачиваем зависимости
-                JSONArray deps = latestFile.optJSONArray("dependencies");
+                // Собираем зависимости
+                JSONArray deps = file.optJSONArray("dependencies");
                 List<String[]> depDownloads = new ArrayList<>();
                 if (deps != null) {
                     for (int i = 0; i < deps.length(); i++) {
                         JSONObject dep = deps.getJSONObject(i);
-                        if (dep.optInt("relationType", 0) == 3) { // required
+                        if (dep.optInt("relationType", 0) == 3) {
                             int depId = dep.getInt("modId");
                             JSONArray depFiles = CurseForgeApi.getModFiles(depId, mcVersion);
                             if (depFiles != null && depFiles.length() > 0) {
@@ -196,16 +250,28 @@ public class ModMarketFragment extends Fragment {
                     }
                 }
 
+                int total = 1 + depDownloads.size();
+                final int[] current = {0};
+
                 // Скачиваем основной мод
-                CurseForgeApi.downloadFile(downloadUrl, new File(modsDir, fileName));
+                CurseForgeApi.downloadFileWithProgress(downloadUrl, new File(modsDir, fileName), percent -> {
+                    int overall = (current[0] * 100 + percent) / total;
+                    mHandler.post(() -> mProgress.setProgress(overall));
+                });
+                current[0]++;
 
                 // Скачиваем зависимости
                 for (String[] dep : depDownloads) {
-                    CurseForgeApi.downloadFile(dep[0], new File(modsDir, dep[1]));
+                    CurseForgeApi.downloadFileWithProgress(dep[0], new File(modsDir, dep[1]), percent -> {
+                        int overall = (current[0] * 100 + percent) / total;
+                        mHandler.post(() -> mProgress.setProgress(overall));
+                    });
+                    current[0]++;
                 }
 
                 mHandler.post(() -> {
                     mProgress.setVisibility(View.GONE);
+                    mProgress.setProgress(0);
                     String msg = "Установлен: " + modName;
                     if (!depDownloads.isEmpty()) msg += " + " + depDownloads.size() + " зависимостей";
                     Toast.makeText(getContext(), msg, Toast.LENGTH_LONG).show();
@@ -213,7 +279,8 @@ public class ModMarketFragment extends Fragment {
             } catch (Exception e) {
                 mHandler.post(() -> {
                     mProgress.setVisibility(View.GONE);
-                    Toast.makeText(getContext(), "Ошибка установки: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    mProgress.setProgress(0);
+                    Toast.makeText(getContext(), "Ошибка: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 });
             }
         });
@@ -224,4 +291,5 @@ public class ModMarketFragment extends Fragment {
         super.onDestroy();
         mExecutor.shutdown();
     }
+            }
 }
