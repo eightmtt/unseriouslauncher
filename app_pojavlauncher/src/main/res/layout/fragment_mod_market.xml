@@ -33,6 +33,14 @@
 
     </LinearLayout>
 
+    <!-- Кнопка переключения источника: CurseForge / Modrinth -->
+    <Button
+        android:id="@+id/market_source_toggle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="4dp"
+        android:text="CurseForge" />
+
     <Button
         android:id="@+id/market_filter_toggle"
         android:layout_width="match_parent"
