@@ -11,9 +11,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 public class CurseForgeApi {
     private static final String BASE_URL = "https://api.curseforge.com/v1";
@@ -21,14 +19,10 @@ public class CurseForgeApi {
     private static final int MINECRAFT_GAME_ID = 432;
     private static final int MOD_CLASS_ID = 6;
 
-    private static Set<String> sKnownVersions = null;
-
     public interface ProgressCallback {
         void onProgress(int percent);
     }
 
-    // mcVersion — уже чистая версия MC ("1.21.11")
-    // rawVersion — сырая строка инстанса ("fabric-loader-0.18.4-1.21.11") для определения лоадера
     public static List<JSONObject> searchMods(String query, String mcVersion, String rawVersion) throws Exception {
         StringBuilder url = new StringBuilder(BASE_URL + "/mods/search");
         url.append("?gameId=").append(MINECRAFT_GAME_ID);
@@ -74,63 +68,22 @@ public class CurseForgeApi {
         return response.optJSONArray("data");
     }
 
-    // Получаем список версий MC от Mojang — вызывать только в фоновом потоке
-    private static Set<String> getKnownVersions() {
-        if (sKnownVersions != null) return sKnownVersions;
-        try {
-            HttpURLConnection conn = (HttpURLConnection) new URL(
-                "https://launchermeta.mojang.com/mc/game/version_manifest.json"
-            ).openConnection();
-            conn.setConnectTimeout(5000);
-            conn.setReadTimeout(5000);
-            conn.connect();
-
-            InputStream in = conn.getInputStream();
-            byte[] buf = new byte[131072];
-            int n = 0, read;
-            while ((read = in.read(buf, n, buf.length - n)) != -1) n += read;
-            String json = new String(buf, 0, n, "UTF-8");
-            conn.disconnect();
-
-            JSONObject manifest = new JSONObject(json);
-            JSONArray versions = manifest.getJSONArray("versions");
-            sKnownVersions = new HashSet<>();
-            for (int i = 0; i < versions.length(); i++) {
-                sKnownVersions.add(versions.getJSONObject(i).getString("id"));
-            }
-        } catch (Exception e) {
-            sKnownVersions = new HashSet<>();
-        }
-        return sKnownVersions;
-    }
-
-    // Вызывать только в фоновом потоке
+    // "fabric-loader-0.18.4-1.21.11" → "1.21.11"
+    // "neoforge-1.21.1-21.1.0"       → "1.21.1"
+    // "1.12.2"                        → "1.12.2"
     public static String extractMcVersion(String versionId) {
         if (versionId == null || versionId.isEmpty()) return "";
         String[] parts = versionId.split("-");
-        Set<String> known = getKnownVersions();
-
-        // Сначала точное совпадение с известной версией MC
-        if (!known.isEmpty()) {
-            for (String part : parts) {
-                if (known.contains(part)) return part;
-            }
-        }
-
-        // Фолбэк: часть начинающаяся с "1."
         for (String part : parts) {
             if (part.startsWith("1.") && part.matches("1\\.\\d+(\\.\\d+)?")) {
                 return part;
             }
         }
-
-        // Финальный фолбэк: любой X.Y.Z
         for (String part : parts) {
             if (part.matches("\\d+\\.\\d+(\\.\\d+)?")) {
                 return part;
             }
         }
-
         return "";
     }
 
@@ -152,6 +105,8 @@ public class CurseForgeApi {
         URL url = new URL(urlStr);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestProperty("x-api-key", API_KEY);
+        conn.setConnectTimeout(10000);
+        conn.setReadTimeout(10000);
         conn.connect();
 
         int fileSize = conn.getContentLength();
