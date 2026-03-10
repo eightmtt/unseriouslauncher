@@ -292,4 +292,3 @@ public class ModMarketFragment extends Fragment {
         mExecutor.shutdown();
     }
             }
-}
