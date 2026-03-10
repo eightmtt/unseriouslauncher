@@ -44,7 +44,10 @@ public class ModMarketFragment extends Fragment {
     private TextView mStatusText;
     private MarketModAdapter mAdapter;
 
-    private String mVersionFilter;
+    // Сырая версия из инстанса (например "fabric-loader-0.18.4-1.21.11")
+    private String mRawVersion;
+    // Чистая версия MC (например "1.21.11") — устанавливается после парсинга в фоне
+    private String mVersionFilter = "";
     private boolean mFilterEnabled = true;
 
     private final ExecutorService mExecutor = Executors.newSingleThreadExecutor();
@@ -63,16 +66,11 @@ public class ModMarketFragment extends Fragment {
         mProgress = view.findViewById(R.id.market_progress);
         mStatusText = view.findViewById(R.id.market_status_text);
 
+        mRawVersion = "";
         if (getArguments() != null) {
-            mVersionFilter = getArguments().getString(ARG_VERSION, "");
+            mRawVersion = getArguments().getString(ARG_VERSION, "");
+            if (mRawVersion == null) mRawVersion = "";
         }
-        if (mVersionFilter == null) mVersionFilter = "";
-
-        // Сразу извлекаем чистую версию MC для отображения
-        String displayVersion = CurseForgeApi.extractMcVersion(mVersionFilter);
-        if (!displayVersion.isEmpty()) mVersionFilter = displayVersion;
-
-        updateFilterButton();
 
         mAdapter = new MarketModAdapter(new ArrayList<>(), this::showVersionDialog);
         mModList.setLayoutManager(new LinearLayoutManager(getContext()));
@@ -86,7 +84,21 @@ public class ModMarketFragment extends Fragment {
             search(mSearchEdit.getText().toString().trim());
         });
 
-        search("");
+        // Парсим версию в фоне (getKnownVersions делает сетевой запрос)
+        // и только потом запускаем первый поиск
+        mProgress.setIndeterminate(true);
+        mProgress.setVisibility(View.VISIBLE);
+        mFilterToggle.setVisibility(View.GONE);
+
+        mExecutor.execute(() -> {
+            // Этот вызов безопасен в фоновом потоке
+            String parsed = CurseForgeApi.extractMcVersion(mRawVersion);
+            mHandler.post(() -> {
+                mVersionFilter = parsed;
+                updateFilterButton();
+                search("");
+            });
+        });
     }
 
     private void updateFilterButton() {
@@ -105,10 +117,11 @@ public class ModMarketFragment extends Fragment {
         mModList.setVisibility(View.GONE);
 
         String version = (mFilterEnabled && !mVersionFilter.isEmpty()) ? mVersionFilter : null;
+        String rawVersion = mFilterEnabled ? mRawVersion : null;
 
         mExecutor.execute(() -> {
             try {
-                List<JSONObject> results = CurseForgeApi.searchMods(query, version);
+                List<JSONObject> results = CurseForgeApi.searchMods(query, version, rawVersion);
                 mHandler.post(() -> {
                     mProgress.setVisibility(View.GONE);
                     if (results.isEmpty()) {
@@ -133,14 +146,15 @@ public class ModMarketFragment extends Fragment {
         try {
             String name = mod.optString("name", "?");
             int modId = mod.getInt("id");
-            String mcVersion = (mFilterEnabled && !mVersionFilter.isEmpty()) ? mVersionFilter : null;
+            String version = (mFilterEnabled && !mVersionFilter.isEmpty()) ? mVersionFilter : null;
+            String rawVersion = mFilterEnabled ? mRawVersion : null;
 
             mProgress.setIndeterminate(true);
             mProgress.setVisibility(View.VISIBLE);
 
             mExecutor.execute(() -> {
                 try {
-                    JSONArray files = CurseForgeApi.getModFiles(modId, mcVersion);
+                    JSONArray files = CurseForgeApi.getModFiles(modId, version, rawVersion);
                     mHandler.post(() -> {
                         mProgress.setVisibility(View.GONE);
                         if (files == null || files.length() == 0) {
@@ -168,7 +182,7 @@ public class ModMarketFragment extends Fragment {
                             .setTitle("Выберите версию: " + name)
                             .setItems(versionNames, (d, which) -> {
                                 try {
-                                    showInstallConfirm(name, files.getJSONObject(which), mcVersion);
+                                    showInstallConfirm(name, files.getJSONObject(which), version, rawVersion);
                                 } catch (Exception e) {
                                     Toast.makeText(getContext(), "Ошибка", Toast.LENGTH_SHORT).show();
                                 }
@@ -188,7 +202,7 @@ public class ModMarketFragment extends Fragment {
         }
     }
 
-    private void showInstallConfirm(String modName, JSONObject file, String mcVersion) {
+    private void showInstallConfirm(String modName, JSONObject file, String version, String rawVersion) {
         try {
             JSONArray deps = file.optJSONArray("dependencies");
             int requiredDeps = 0;
@@ -204,7 +218,7 @@ public class ModMarketFragment extends Fragment {
             new AlertDialog.Builder(requireContext())
                 .setTitle("Установить " + modName + "?")
                 .setMessage(msg)
-                .setPositiveButton("Установить", (d, w) -> installMod(modName, file, mcVersion))
+                .setPositiveButton("Установить", (d, w) -> installMod(modName, file, version, rawVersion))
                 .setNegativeButton("Отмена", null)
                 .show();
         } catch (Exception e) {
@@ -212,7 +226,7 @@ public class ModMarketFragment extends Fragment {
         }
     }
 
-    private void installMod(String modName, JSONObject file, String mcVersion) {
+    private void installMod(String modName, JSONObject file, String version, String rawVersion) {
         mProgress.setIndeterminate(false);
         mProgress.setProgress(0);
         mProgress.setVisibility(View.VISIBLE);
@@ -230,7 +244,6 @@ public class ModMarketFragment extends Fragment {
                 String downloadUrl = file.getString("downloadUrl");
                 String fileName = file.getString("fileName");
 
-                // Собираем зависимости
                 JSONArray deps = file.optJSONArray("dependencies");
                 List<String[]> depDownloads = new ArrayList<>();
                 if (deps != null) {
@@ -238,7 +251,7 @@ public class ModMarketFragment extends Fragment {
                         JSONObject dep = deps.getJSONObject(i);
                         if (dep.optInt("relationType", 0) == 3) {
                             int depId = dep.getInt("modId");
-                            JSONArray depFiles = CurseForgeApi.getModFiles(depId, mcVersion);
+                            JSONArray depFiles = CurseForgeApi.getModFiles(depId, version, rawVersion);
                             if (depFiles != null && depFiles.length() > 0) {
                                 JSONObject depFile = depFiles.getJSONObject(0);
                                 depDownloads.add(new String[]{
@@ -253,14 +266,12 @@ public class ModMarketFragment extends Fragment {
                 int total = 1 + depDownloads.size();
                 final int[] current = {0};
 
-                // Скачиваем основной мод
                 CurseForgeApi.downloadFileWithProgress(downloadUrl, new File(modsDir, fileName), percent -> {
                     int overall = (current[0] * 100 + percent) / total;
                     mHandler.post(() -> mProgress.setProgress(overall));
                 });
                 current[0]++;
 
-                // Скачиваем зависимости
                 for (String[] dep : depDownloads) {
                     CurseForgeApi.downloadFileWithProgress(dep[0], new File(modsDir, dep[1]), percent -> {
                         int overall = (current[0] * 100 + percent) / total;
@@ -291,4 +302,4 @@ public class ModMarketFragment extends Fragment {
         super.onDestroy();
         mExecutor.shutdown();
     }
-            }
+                }
