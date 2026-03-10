@@ -15,9 +15,13 @@ import java.util.List;
 
 public class CurseForgeApi {
     private static final String BASE_URL = "https://api.curseforge.com/v1";
-    private static final String API_KEY = "$2a$10$bL4bIL5pUWqfcO7KwBgE2uj8F3C5R9vOqOZJRlkFPQlZaBMJaJg5e"; // публичный ключ
+    public static final String API_KEY = "$2a$10$nmgqE1JtzyaSe9gxDlRTWuGCWlVGMq9qE5QRXyAP13hYDUvmXYXa2";
     private static final int MINECRAFT_GAME_ID = 432;
     private static final int MOD_CLASS_ID = 6;
+
+    public interface ProgressCallback {
+        void onProgress(int percent);
+    }
 
     public static List<JSONObject> searchMods(String query, String mcVersion) throws Exception {
         StringBuilder url = new StringBuilder(BASE_URL + "/mods/search");
@@ -28,7 +32,6 @@ public class CurseForgeApi {
             url.append("&searchFilter=").append(URLEncoder.encode(query, "UTF-8"));
         }
         if (mcVersion != null && !mcVersion.isEmpty()) {
-            // Извлекаем только версию MC (например из "1.21.1-neoforge-21.1.0" берём "1.21.1")
             String ver = extractMcVersion(mcVersion);
             url.append("&gameVersion=").append(URLEncoder.encode(ver, "UTF-8"));
         }
@@ -46,7 +49,7 @@ public class CurseForgeApi {
 
     public static JSONArray getModFiles(int modId, String mcVersion) throws Exception {
         StringBuilder url = new StringBuilder(BASE_URL + "/mods/" + modId + "/files");
-        url.append("?pageSize=10");
+        url.append("?pageSize=15");
         if (mcVersion != null && !mcVersion.isEmpty()) {
             String ver = extractMcVersion(mcVersion);
             url.append("&gameVersion=").append(URLEncoder.encode(ver, "UTF-8"));
@@ -55,26 +58,47 @@ public class CurseForgeApi {
         return response.optJSONArray("data");
     }
 
-    private static String extractMcVersion(String versionId) {
-        // Берём первую часть до "-" (например "1.21.1" из "1.21.1-neoforge-21.1.0")
+    // Исправленный extractMcVersion — корректно парсит форматы:
+    // "fabric-loader-0.18.4-1.21.11" → "1.21.11"
+    // "1.21.1-neoforge-21.1.0" → "1.21.1"
+    // "1.21.1" → "1.21.1"
+    public static String extractMcVersion(String versionId) {
         if (versionId == null) return "";
         String[] parts = versionId.split("-");
+        // Ищем часть которая выглядит как версия MC (начинается с цифры и содержит точки)
+        for (String part : parts) {
+            if (part.matches("\\d+\\.\\d+.*")) {
+                return part;
+            }
+        }
         return parts[0];
     }
 
     public static void downloadFile(String urlStr, File dest) throws Exception {
+        downloadFileWithProgress(urlStr, dest, null);
+    }
+
+    public static void downloadFileWithProgress(String urlStr, File dest, ProgressCallback callback) throws Exception {
         URL url = new URL(urlStr);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestProperty("x-api-key", API_KEY);
         conn.connect();
 
+        int fileSize = conn.getContentLength();
+
         try (InputStream in = conn.getInputStream();
              OutputStream out = new FileOutputStream(dest)) {
             byte[] buf = new byte[8192];
             int n;
+            long downloaded = 0;
             while ((n = in.read(buf)) != -1) {
                 out.write(buf, 0, n);
+                downloaded += n;
+                if (callback != null && fileSize > 0) {
+                    callback.onProgress((int)(downloaded * 100 / fileSize));
+                }
             }
+            if (callback != null) callback.onProgress(100);
         } finally {
             conn.disconnect();
         }
