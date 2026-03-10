@@ -21,14 +21,15 @@ public class CurseForgeApi {
     private static final int MINECRAFT_GAME_ID = 432;
     private static final int MOD_CLASS_ID = 6;
 
-    // Кэш версий от Mojang
     private static Set<String> sKnownVersions = null;
 
     public interface ProgressCallback {
         void onProgress(int percent);
     }
 
-    public static List<JSONObject> searchMods(String query, String mcVersion) throws Exception {
+    // mcVersion — уже чистая версия MC ("1.21.11")
+    // rawVersion — сырая строка инстанса ("fabric-loader-0.18.4-1.21.11") для определения лоадера
+    public static List<JSONObject> searchMods(String query, String mcVersion, String rawVersion) throws Exception {
         StringBuilder url = new StringBuilder(BASE_URL + "/mods/search");
         url.append("?gameId=").append(MINECRAFT_GAME_ID);
         url.append("&classId=").append(MOD_CLASS_ID);
@@ -37,11 +38,10 @@ public class CurseForgeApi {
             url.append("&searchFilter=").append(URLEncoder.encode(query, "UTF-8"));
         }
         if (mcVersion != null && !mcVersion.isEmpty()) {
-            String ver = extractMcVersion(mcVersion);
-            if (!ver.isEmpty()) {
-                url.append("&gameVersion=").append(URLEncoder.encode(ver, "UTF-8"));
-            }
-            int loader = extractModLoader(mcVersion);
+            url.append("&gameVersion=").append(URLEncoder.encode(mcVersion, "UTF-8"));
+        }
+        if (rawVersion != null && !rawVersion.isEmpty()) {
+            int loader = extractModLoader(rawVersion);
             if (loader != -1) {
                 url.append("&modLoaderType=").append(loader);
             }
@@ -58,15 +58,14 @@ public class CurseForgeApi {
         return result;
     }
 
-    public static JSONArray getModFiles(int modId, String mcVersion) throws Exception {
+    public static JSONArray getModFiles(int modId, String mcVersion, String rawVersion) throws Exception {
         StringBuilder url = new StringBuilder(BASE_URL + "/mods/" + modId + "/files");
         url.append("?pageSize=15");
         if (mcVersion != null && !mcVersion.isEmpty()) {
-            String ver = extractMcVersion(mcVersion);
-            if (!ver.isEmpty()) {
-                url.append("&gameVersion=").append(URLEncoder.encode(ver, "UTF-8"));
-            }
-            int loader = extractModLoader(mcVersion);
+            url.append("&gameVersion=").append(URLEncoder.encode(mcVersion, "UTF-8"));
+        }
+        if (rawVersion != null && !rawVersion.isEmpty()) {
+            int loader = extractModLoader(rawVersion);
             if (loader != -1) {
                 url.append("&modLoaderType=").append(loader);
             }
@@ -75,7 +74,7 @@ public class CurseForgeApi {
         return response.optJSONArray("data");
     }
 
-    // Получаем список всех версий MC от Mojang и кэшируем
+    // Получаем список версий MC от Mojang — вызывать только в фоновом потоке
     private static Set<String> getKnownVersions() {
         if (sKnownVersions != null) return sKnownVersions;
         try {
@@ -100,38 +99,32 @@ public class CurseForgeApi {
                 sKnownVersions.add(versions.getJSONObject(i).getString("id"));
             }
         } catch (Exception e) {
-            // Если не получилось — возвращаем пустой сет, сработает фолбэк
             sKnownVersions = new HashSet<>();
         }
         return sKnownVersions;
     }
 
-    // Парсинг версии MC — сверяем с официальным списком Mojang:
-    // "fabric-loader-0.18.4-1.21.11" → "1.21.11"
-    // "neoforge-1.21.1-21.1.0"       → "1.21.1"
-    // "forge-1.20.1-47.2.0"          → "1.20.1"
-    // "26.1-someloader-1.0"           → "26.1" (будущие версии тоже работают)
-    // "1.12.2"                        → "1.12.2"
+    // Вызывать только в фоновом потоке
     public static String extractMcVersion(String versionId) {
-        if (versionId == null) return "";
+        if (versionId == null || versionId.isEmpty()) return "";
         String[] parts = versionId.split("-");
         Set<String> known = getKnownVersions();
 
-        // Сначала ищем точное совпадение с известной версией MC
+        // Сначала точное совпадение с известной версией MC
         if (!known.isEmpty()) {
             for (String part : parts) {
                 if (known.contains(part)) return part;
             }
         }
 
-        // Фолбэк: ищем часть начинающуюся с "1." (текущий MC)
+        // Фолбэк: часть начинающаяся с "1."
         for (String part : parts) {
             if (part.startsWith("1.") && part.matches("1\\.\\d+(\\.\\d+)?")) {
                 return part;
             }
         }
 
-        // Финальный фолбэк: любой X.Y или X.Y.Z
+        // Финальный фолбэк: любой X.Y.Z
         for (String part : parts) {
             if (part.matches("\\d+\\.\\d+(\\.\\d+)?")) {
                 return part;
@@ -141,12 +134,6 @@ public class CurseForgeApi {
         return "";
     }
 
-    // Парсинг лоадера из versionId:
-    // "fabric-loader-..." → 4
-    // "neoforge-..."      → 6
-    // "forge-..."         → 1
-    // "quilt-..."         → 5
-    // vanilla / неизвестно → -1 (не передаём параметр)
     public static int extractModLoader(String versionId) {
         if (versionId == null) return -1;
         String lower = versionId.toLowerCase();
@@ -193,6 +180,8 @@ public class CurseForgeApi {
         conn.setRequestMethod("GET");
         conn.setRequestProperty("x-api-key", API_KEY);
         conn.setRequestProperty("Accept", "application/json");
+        conn.setConnectTimeout(10000);
+        conn.setReadTimeout(10000);
         conn.connect();
 
         InputStream in = conn.getInputStream();
