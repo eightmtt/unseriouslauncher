@@ -76,7 +76,7 @@ android {
     defaultConfig {
         applicationId "git.artdeell.mojo"
         minSdkVersion 21
-        targetSdkVersion 35
+        targetSdkVersion 36
         versionCode getDateSeconds()
         versionName getVersionName()
         multiDexEnabled false //important
