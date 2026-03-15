@@ -98,7 +98,6 @@ public class ModMarketFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         mSearchEdit = view.findViewById(R.id.market_search_edit);
-        mSearchButton = view.findViewById(R.id.market_search_button);
         mFilterButton = view.findViewById(R.id.market_filter_button);
         mSourceToggle = view.findViewById(R.id.market_source_toggle);
         mSortButton = view.findViewById(R.id.market_sort_button);
