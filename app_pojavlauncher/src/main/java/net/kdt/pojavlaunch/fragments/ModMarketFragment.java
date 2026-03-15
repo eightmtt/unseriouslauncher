@@ -160,7 +160,6 @@ public class ModMarketFragment extends Fragment {
             } catch (Exception ignored) {}
         });
 
-        mSearchButton.setOnClickListener(v -> startNewSearch());
         mSearchEdit.setOnEditorActionListener((v, a, e) -> { startNewSearch(); return true; });
 
         mSourceToggle.setOnClickListener(v -> {
