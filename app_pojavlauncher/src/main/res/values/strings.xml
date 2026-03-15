@@ -479,4 +479,5 @@
     <string name="runtime_error_missing">Java %d is not yet installed. Please choose another compatible runtime or connect to the Internet to install it automatically.</string>
     <string name="runtime_error_install_failed">Failed to install Java %d. Please check your Internet connection and try again.</string>
     <string name="mod_manager_title">Mod Manager</string>
+    <string name="curseforge_api_key">$2a$10$nmgqE1JtzyaSe9gxDlRTWuGCWlVGMq9qE5QRXyAP13hYDUvmXYXa2</string>
 </resources>
