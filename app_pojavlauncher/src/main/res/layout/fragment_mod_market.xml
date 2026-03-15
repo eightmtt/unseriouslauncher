@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_app">
+
+    <!-- Список модов -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/market_mod_list"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:paddingTop="72dp"
+        android:paddingBottom="60dp"
+        android:paddingHorizontal="8dp"
+        android:clipToPadding="false" />
+
+    <!-- Статус / ошибка -->
+    <TextView
+        android:id="@+id/market_status_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="80dp"
+        android:gravity="center"
+        android:padding="24dp"
+        android:textSize="14sp"
+        android:visibility="gone" />
+
+    <!-- Шапка -->
+    <LinearLayout
+        android:id="@+id/market_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@color/background_app"
+        android:elevation="4dp"
+        android:padding="8dp"
+        android:gravity="center_vertical">
+
+        <!-- Поле поиска -->
+        <EditText
+            android:id="@+id/market_search_edit"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="1"
+            android:hint="Search mods..."
+            android:background="@drawable/background_line"
+            android:paddingHorizontal="12dp"
+            android:imeOptions="actionSearch"
+            android:inputType="text"
+            android:singleLine="true"
+            android:layout_marginEnd="6dp" />
+
+        <!-- Кнопка фильтров (воронка) -->
+        <ImageButton
+            android:id="@+id/market_filter_button"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="@drawable/background_line"
+            android:src="@drawable/ic_filter"
+            android:contentDescription="Filters"
+            android:padding="10dp"
+            android:layout_marginEnd="6dp" />
+
+        <!-- Кнопка источника (иконка CF/Modrinth) -->
+        <ImageButton
+            android:id="@+id/market_source_toggle"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="@drawable/background_line"
+            android:src="@drawable/ic_modrinth"
+            android:contentDescription="Source"
+            android:padding="6dp" />
+
+    </LinearLayout>
+
+    <!-- Прогресс бар скачивания -->
+    <ProgressBar
+        android:id="@+id/market_progress"
+        style="@android:style/Widget.ProgressBar.Horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="3dp"
+        android:layout_marginTop="68dp"
+        android:visibility="gone" />
+
+    <!-- Боковая панель фильтров (выезжает справа) -->
+    <LinearLayout
+        android:id="@+id/market_filter_panel"
+        android:layout_width="280dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="end"
+        android:orientation="vertical"
+        android:background="@drawable/background_card"
+        android:padding="16dp"
+        android:elevation="16dp"
+        android:translationX="280dp"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Filters"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Сортировка -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Sort by"
+            android:textSize="12sp"
+            android:alpha="0.6"
+            android:layout_marginBottom="6dp" />
+
+        <TextView
+            android:id="@+id/market_sort_button"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:text="↓ Relevance"
+            android:textSize="13sp"
+            android:background="@drawable/background_line"
+            android:paddingHorizontal="12dp"
+            android:gravity="center_vertical"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Версия MC -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Game version"
+            android:textSize="12sp"
+            android:alpha="0.6"
+            android:layout_marginBottom="6dp" />
+
+        <TextView
+            android:id="@+id/market_version_picker"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:text="All versions ▾"
+            android:textSize="13sp"
+            android:background="@drawable/background_line"
+            android:paddingHorizontal="12dp"
+            android:gravity="center_vertical"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Лоадер -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Mod loader"
+            android:textSize="12sp"
+            android:alpha="0.6"
+            android:layout_marginBottom="6dp" />
+
+        <TextView
+            android:id="@+id/market_loader_picker"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:text="All loaders ▾"
+            android:textSize="13sp"
+            android:background="@drawable/background_line"
+            android:paddingHorizontal="12dp"
+            android:gravity="center_vertical"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Фильтр версии инстанса -->
+        <TextView
+            android:id="@+id/market_filter_toggle"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:textSize="13sp"
+            android:background="@drawable/background_line"
+            android:paddingHorizontal="12dp"
+            android:gravity="center_vertical"
+            android:clickable="true"
+            android:focusable="true"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+    <!-- Затемнение при открытой панели -->
+    <View
+        android:id="@+id/market_filter_scrim"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#80000000"
+        android:visibility="gone"
+        android:clickable="true"
+        android:focusable="true" />
+
+    <!-- Пагинация внизу -->
+    <LinearLayout
+        android:id="@+id/market_pagination"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_gravity="bottom"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:background="@color/background_app"
+        android:elevation="4dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/market_prev_button"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:text="‹"
+            android:textSize="22sp"
+            android:gravity="center"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <TextView
+            android:id="@+id/market_page_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="13sp"
+            android:text="1 / 1"
+            android:layout_marginHorizontal="12dp" />
+
+        <TextView
+            android:id="@+id/market_next_button"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:text="›"
+            android:textSize="22sp"
+            android:gravity="center"
+            android:clickable="true"
+            android:focusable="true" />
+
+    </LinearLayout>
+
+</FrameLayout>
