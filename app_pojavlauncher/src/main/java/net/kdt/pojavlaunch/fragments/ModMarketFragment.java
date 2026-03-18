@@ -114,6 +114,8 @@ public class ModMarketFragment extends Fragment {
         mOverlay = view.findViewById(R.id.market_overlay);
         mFilterPanel = view.findViewById(R.id.market_filter_panel);
         mFilterScrim = view.findViewById(R.id.market_filter_scrim);
+        mFilterPanel.setVisibility(View.GONE);
+        mFilterScrim.setVisibility(View.GONE);
 
         if (getArguments() != null) {
             String raw = getArguments().getString(ARG_VERSION, "");
