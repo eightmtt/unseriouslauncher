@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/background_card"
+    android:layout_marginHorizontal="12dp"
+    android:layout_marginBottom="10dp"
+    android:padding="14dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?android:attr/selectableItemBackground">
+
+    <!-- Верхний ряд: иконка + название + автор + скачивания -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <!-- Иконка со скруглёнными углами -->
+        <ImageView
+            android:id="@+id/market_mod_icon"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_marginEnd="12dp"
+            android:scaleType="centerCrop"
+            android:background="@drawable/background_icon_edit"
+            android:clipToOutline="true"
+            android:src="@drawable/ic_curseforge" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <!-- Название + автор в одну строку -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/market_mod_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:layout_marginEnd="6dp" />
+
+                <TextView
+                    android:id="@+id/market_mod_author"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textSize="12sp"
+                    android:alpha="0.55"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+
+            </LinearLayout>
+
+            <!-- Описание -->
+            <TextView
+                android:id="@+id/market_mod_summary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:textSize="12sp"
+                android:alpha="0.7"
+                android:maxLines="2"
+                android:ellipsize="end" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Теги -->
+    <LinearLayout
+        android:id="@+id/market_mod_tags_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="10dp" />
+
+    <!-- Статистика: скачивания + дата -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical">
+
+        <ImageView
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:src="@drawable/ic_add"
+            android:layout_marginEnd="4dp"
+            android:alpha="0.6" />
+
+        <TextView
+            android:id="@+id/market_mod_downloads"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="12sp"
+            android:alpha="0.6"
+            android:layout_marginEnd="16dp" />
+
+        <ImageView
+            android:id="@+id/market_mod_updated_icon"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:src="@drawable/ic_updated"
+            android:layout_marginEnd="4dp"
+            android:alpha="0.6" />
+
+        <TextView
+            android:id="@+id/market_mod_updated"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="12sp"
+            android:alpha="0.6" />
+
+    </LinearLayout>
+
+    <!-- Расширенная панель -->
+    <LinearLayout
+        android:id="@+id/market_mod_expanded"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginTop="12dp"
+        android:visibility="gone">
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@drawable/background_line"
+            android:layout_marginBottom="10dp" />
+
+        <LinearLayout
+            android:id="@+id/market_mod_version_selectors"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="10dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/market_mod_version_picker"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_weight="1"
+                android:text="All Game Versions ▾"
+                android:textSize="12sp"
+                android:background="@drawable/background_line"
+                android:gravity="center"
+                android:layout_marginEnd="6dp"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <TextView
+                android:id="@+id/market_mod_loader_picker"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_weight="1"
+                android:text="All Mod Loaders ▾"
+                android:textSize="12sp"
+                android:background="@drawable/background_line"
+                android:gravity="center"
+                android:clickable="true"
+                android:focusable="true" />
+
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/market_mod_download_btn"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:text="↓ Скачать"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:background="@drawable/background_line" />
+
+    </LinearLayout>
+
+</LinearLayout>
